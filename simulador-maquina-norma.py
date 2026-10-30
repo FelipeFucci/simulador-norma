@@ -22,16 +22,6 @@ def tst(registrador, salto_zero, salto_nao_zero, memoria_registradores):
         pc_atual = salto_nao_zero
         return pc_atual
 
-def mapear_rotulos_codigo_nao_traduzido(memoria_codigo):
-    memoria_rotulos = {}
-    lista_padroes = obter_lista_padroes_sintaxe()
-    for linha in memoria_codigo:
-        condiz = re.fullmatch(lista_padroes[12], linha)
-        if condiz:
-            memoria_rotulos[linha.removesuffix(":")] = memoria_codigo.index(linha)
-
-    return memoria_rotulos
-
 def registrador_existe(registrador, memoria_registradores):
     return registrador in memoria_registradores
 
@@ -40,11 +30,6 @@ def criar_registrador(registrador, memoria_registradores, valor = 0):
         return False
     memoria_registradores[registrador] = valor
     return True
-
-def obter_valor_registrador(registrador, memoria_registradores):
-    if not registrador_existe(registrador, memoria_registradores):
-        return None
-    return memoria_registradores[registrador]
 
 def carregar_programa(nome):
     memoria_codigo = []
@@ -80,7 +65,13 @@ def obter_lista_padroes_sintaxe():
 
 def validar_sintaxe(memoria_codigo):
     lista_padroes = obter_lista_padroes_sintaxe()
-    memoria_rotulos = mapear_rotulos_codigo_nao_traduzido(memoria_codigo)
+    memoria_rotulos = {}
+
+    for conteudo_linha in memoria_codigo:
+        condiz = re.fullmatch(lista_padroes[12], conteudo_linha)
+        if condiz:
+            memoria_rotulos[conteudo_linha.removesuffix(":")] = memoria_codigo.index(conteudo_linha)
+
     rotulos_vistos = set()
     memoria_erros_sintaxe = []
 
@@ -430,9 +421,9 @@ while True:
         case 1:
             try:
                 nome = input("\nDigite o nome do arquivo e a sua extensão: ")
-                if not nome.endswith(".norma"):
-                    print("\nArquivo inválido! Por favor, escolha um arquivo .norma!")
-                    continue  # Volta direto para o menu principal
+                if not nome.endswith(".norma") and not nome.endswith(".txt"):
+                    print("\nArquivo inválido! Por favor, escolha um arquivo .norma ou .txt!")
+                    continue
                 memoria_codigo = carregar_programa(nome)
                 erros = validar_sintaxe(memoria_codigo)
             except FileNotFoundError:
