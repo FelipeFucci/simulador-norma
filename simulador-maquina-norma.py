@@ -42,7 +42,7 @@ def obter_lista_padroes_sintaxe():
     padroes = [
         r"INC [A-Z]",
         r"DEC [A-Z]",
-        r"TST ([A-Z]) VÁ_PARA ([A-Z0-9]+|\d+) SENÃO ([A-Z0-9]+|\d+)",
+        r"TST ([A-Z]) VÁ_PARA ([A-Z0-9]+) SENÃO ([A-Z0-9]+)",
 
         r"ZER [A-Z]",
 
