@@ -1,5 +1,28 @@
 import re
 
+PADROES_SINTAXE = {
+    "INC" : r"INC [A-Z]",
+    "DEC" : r"DEC [A-Z]",
+    "TST" : r"TST ([A-Z]) VÁ_PARA ([A-Z0-9]+) SENÃO ([A-Z0-9]+)",
+
+    "MACRO_ZERAR" : r"ZER [A-Z]",
+
+    "MACRO_ATRIBUIÇÃO" : r"[A-Z] := \d+",
+
+    "MACRO_SOMA_COM_2_REGISTRADORES" : r"([A-Z]) := \1 \+ ([A-Z]) com ([A-Z])",
+    "MACRO_SOMA_COM_3_REGISTRADORES" : r"([A-Z]) := ([A-Z]) \+ ([A-Z]) com ([A-Z]), ([A-Z])",
+
+    "MACRO_SUBTRAÇÃO_COM_2_REGISTRADORES" : r"([A-Z]) := \1 - ([A-Z]) com ([A-Z])",
+    "MACRO_SUBTRAÇÃO_COM_3_REGISTRADORES" : r"([A-Z]) := ([A-Z]) - ([A-Z]) com ([A-Z]), ([A-Z])",
+
+    "MACRO_MULTIPLICAÇÃO_COM_2_REGISTRADORES" : r"([A-Z]) := \1 \* ([A-Z]) com ([A-Z]), ([A-Z]), ([A-Z])",
+    "MACRO_MULTIPLICAÇÃO_COM_3_REGISTRADORES" : r"([A-Z]) := ([A-Z]) \* ([A-Z]) com ([A-Z]), ([A-Z])",
+
+    "MACRO_DIVISÃO" : r"([A-Z]) := ([A-Z]) div ([A-Z]), ([A-Z]) := \2 mod \3 com ([A-Z]), ([A-Z]), ([A-Z])",
+
+    "RÓTULO" : r"[A-Z0-9]+:"
+}
+
 def inc(registrador, pc_atual, memoria_registradores):
     memoria_registradores[registrador] += 1
     pc_atual += 1
@@ -25,11 +48,8 @@ def tst(registrador, salto_zero, salto_nao_zero, memoria_registradores):
 def registrador_existe(registrador, memoria_registradores):
     return registrador in memoria_registradores
 
-def criar_registrador(registrador, memoria_registradores, valor = 0):
-    if valor < 0:
-        return False
-    memoria_registradores[registrador] = valor
-    return True
+def criar_registrador(registrador, memoria_registradores):
+    memoria_registradores[registrador] = 0
 
 def carregar_programa(nome):
     memoria_codigo = []
@@ -38,37 +58,11 @@ def carregar_programa(nome):
             memoria_codigo.append(" ".join(linha.split()))
     return memoria_codigo
 
-def obter_lista_padroes_sintaxe():
-    padroes = [
-        r"INC [A-Z]",
-        r"DEC [A-Z]",
-        r"TST ([A-Z]) VÁ_PARA ([A-Z0-9]+) SENÃO ([A-Z0-9]+)",
-
-        r"ZER [A-Z]",
-
-        r"[A-Z] := \d+",
-
-        r"([A-Z]) := \1 \+ ([A-Z]) com ([A-Z])",
-        r"([A-Z]) := ([A-Z]) \+ ([A-Z]) com ([A-Z]), ([A-Z])",
-
-        r"([A-Z]) := \1 - ([A-Z]) com ([A-Z])",
-        r"([A-Z]) := ([A-Z]) - ([A-Z]) com ([A-Z]), ([A-Z])",
-
-        r"([A-Z]) := \1 \* ([A-Z]) com ([A-Z]), ([A-Z]), ([A-Z])",
-        r"([A-Z]) := ([A-Z]) \* ([A-Z]) com ([A-Z]), ([A-Z])",
-
-        r"([A-Z]) := ([A-Z]) div ([A-Z]), ([A-Z]) := \2 mod \3 com ([A-Z]), ([A-Z]), ([A-Z])",
-
-        r"[A-Z0-9]+:"
-    ]
-    return padroes
-
 def validar_sintaxe(memoria_codigo):
-    lista_padroes = obter_lista_padroes_sintaxe()
     memoria_rotulos = {}
 
     for conteudo_linha in memoria_codigo:
-        condiz = re.fullmatch(lista_padroes[12], conteudo_linha)
+        condiz = re.fullmatch(PADROES_SINTAXE["RÓTULO"], conteudo_linha)
         if condiz:
             memoria_rotulos[conteudo_linha.removesuffix(":")] = memoria_codigo.index(conteudo_linha)
 
@@ -79,13 +73,13 @@ def validar_sintaxe(memoria_codigo):
         if not conteudo_linha:
             continue
 
-        if not any(re.fullmatch(padrao, conteudo_linha) for padrao in lista_padroes):
+        if not any(re.fullmatch(padrao, conteudo_linha) for padrao in PADROES_SINTAXE.values()):
             memoria_erros_sintaxe.append(
                 f"Linha {numero_linha}, ID {numero_linha - 1}: sintaxe inválida: {conteudo_linha}"
             )
             continue
 
-        if re.fullmatch(lista_padroes[12], conteudo_linha):
+        if re.fullmatch(PADROES_SINTAXE["RÓTULO"], conteudo_linha):
             rotulo = conteudo_linha.removesuffix(":")
             if rotulo in rotulos_vistos:
                 memoria_erros_sintaxe.append(
@@ -94,7 +88,7 @@ def validar_sintaxe(memoria_codigo):
             rotulos_vistos.add(rotulo)
             continue
 
-        condiz = re.fullmatch(lista_padroes[2], conteudo_linha)
+        condiz = re.fullmatch(PADROES_SINTAXE["TST"], conteudo_linha)
         if condiz:
             _, salto_zero, salto_nao_zero = condiz.groups()
             if not salto_zero.isdigit() and salto_zero not in memoria_rotulos:
@@ -289,28 +283,27 @@ def traduzir_divisao(quociente, registrador1, registrador2, resto, auxiliar1, au
 
 
 def traduzir_codigo(memoria_codigo):
-    lista_padroes = obter_lista_padroes_sintaxe()
     memoria_rotulos = {}
     memoria_codigo_traduzido = []
     for conteudo_linha in memoria_codigo:
         if not conteudo_linha:
             continue
 
-        if re.fullmatch(lista_padroes[12], conteudo_linha):
+        if re.fullmatch(PADROES_SINTAXE["RÓTULO"], conteudo_linha):
             memoria_rotulos[conteudo_linha.removesuffix(":")] = len(memoria_codigo_traduzido)
             continue
 
-        if re.fullmatch(lista_padroes[0], conteudo_linha) or re.fullmatch(lista_padroes[1], conteudo_linha) or re.fullmatch(lista_padroes[2], conteudo_linha):
+        if re.fullmatch(PADROES_SINTAXE["INC"], conteudo_linha) or re.fullmatch(PADROES_SINTAXE["DEC"], conteudo_linha) or re.fullmatch(PADROES_SINTAXE["TST"], conteudo_linha):
             memoria_codigo_traduzido.append(conteudo_linha)
             continue
 
-        condiz = re.fullmatch(lista_padroes[3], conteudo_linha)
+        condiz = re.fullmatch(PADROES_SINTAXE["MACRO_ZERAR"], conteudo_linha)
         if condiz:
             registrador1 = conteudo_linha.split()[1]
             traduzir_zerar(registrador1, memoria_codigo_traduzido)
             continue
 
-        condiz = re.fullmatch(lista_padroes[4], conteudo_linha)
+        condiz = re.fullmatch(PADROES_SINTAXE["MACRO_ATRIBUIÇÃO"], conteudo_linha)
         if condiz:
             partes = conteudo_linha.split(" := ")
             registrador1 = partes[0]
@@ -318,50 +311,50 @@ def traduzir_codigo(memoria_codigo):
             traduzir_atribuicao(registrador1, valor, memoria_codigo_traduzido)
             continue
 
-        condiz = re.fullmatch(lista_padroes[5], conteudo_linha)
+        condiz = re.fullmatch(PADROES_SINTAXE["MACRO_SOMA_COM_2_REGISTRADORES"], conteudo_linha)
         if condiz:
             registrador1, registrador2, auxiliar1 = condiz.groups()
             traduzir_soma_com_2_registradores(registrador1, registrador2, auxiliar1, memoria_codigo_traduzido)
             continue
 
-        condiz = re.fullmatch(lista_padroes[6], conteudo_linha)
+        condiz = re.fullmatch(PADROES_SINTAXE["MACRO_SOMA_COM_3_REGISTRADORES"], conteudo_linha)
         if condiz:
             registrador3, registrador1, registrador2, auxiliar1, auxiliar2 = condiz.groups()
             traduzir_soma_com_3_registradores(registrador1, registrador2, registrador3, auxiliar1, auxiliar2, memoria_codigo_traduzido)
             continue
 
-        condiz = re.fullmatch(lista_padroes[7], conteudo_linha)
+        condiz = re.fullmatch(PADROES_SINTAXE["MACRO_SUBTRAÇÃO_COM_2_REGISTRADORES"], conteudo_linha)
         if condiz:
             registrador1, registrador2, auxiliar1 = condiz.groups()
             traduzir_subtracao_com_2_registradores(registrador1, registrador2, auxiliar1, memoria_codigo_traduzido)
             continue
 
-        condiz = re.fullmatch(lista_padroes[8], conteudo_linha)
+        condiz = re.fullmatch(PADROES_SINTAXE["MACRO_SUBTRAÇÃO_COM_3_REGISTRADORES"], conteudo_linha)
         if condiz:
             registrador3, registrador1, registrador2, auxiliar1, auxiliar2 = condiz.groups()
             traduzir_subtracao_com_3_registradores(registrador1, registrador2, registrador3, auxiliar1, auxiliar2, memoria_codigo_traduzido)
             continue
 
-        condiz = re.fullmatch(lista_padroes[9], conteudo_linha)
+        condiz = re.fullmatch(PADROES_SINTAXE["MACRO_MULTIPLICAÇÃO_COM_2_REGISTRADORES"], conteudo_linha)
         if condiz:
             registrador1, registrador2, auxiliar1, auxiliar2, auxiliar3 = condiz.groups()
             traduzir_multiplicacao_com_2_registradores(registrador1, registrador2, auxiliar1, auxiliar2, auxiliar3, memoria_codigo_traduzido)
             continue
 
-        condiz = re.fullmatch(lista_padroes[10], conteudo_linha)
+        condiz = re.fullmatch(PADROES_SINTAXE["MACRO_MULTIPLICAÇÃO_COM_3_REGISTRADORES"], conteudo_linha)
         if condiz:
             registrador3, registrador1, registrador2, auxiliar1, auxiliar2 = condiz.groups()
             traduzir_multiplicacao_com_3_registradores(registrador1, registrador2, registrador3, auxiliar1, auxiliar2, memoria_codigo_traduzido)
             continue
 
-        condiz = re.fullmatch(lista_padroes[11], conteudo_linha)
+        condiz = re.fullmatch(PADROES_SINTAXE["MACRO_DIVISÃO"], conteudo_linha)
         if condiz:
             quociente, registrador1, registrador2, resto, auxiliar1, auxiliar2, auxiliar3 = condiz.groups()
             traduzir_divisao(quociente, registrador1, registrador2, resto, auxiliar1, auxiliar2, auxiliar3, memoria_codigo_traduzido)
             continue
 
     for valor_linha, conteudo_linha in enumerate(memoria_codigo_traduzido):
-        condiz = re.fullmatch(lista_padroes[2], conteudo_linha)
+        condiz = re.fullmatch(PADROES_SINTAXE["TST"], conteudo_linha)
         if condiz:
             registrador1, salto_zero, salto_nao_zero = condiz.groups()
 
@@ -373,33 +366,32 @@ def traduzir_codigo(memoria_codigo):
     return memoria_codigo_traduzido
 
 def executar_codigo(memoria_codigo_traduzido, memoria_registradores, pc):
-    lista_padroes = obter_lista_padroes_sintaxe()
     linha = memoria_codigo_traduzido[pc]
-    condiz = re.fullmatch(lista_padroes[0], linha)
+    condiz = re.fullmatch(PADROES_SINTAXE["INC"], linha)
     if condiz:
         registrador1 = linha.split()[1]
 
         if not registrador_existe(registrador1, memoria_registradores):
-            criar_registrador(registrador1, memoria_registradores, 0)
+            criar_registrador(registrador1, memoria_registradores)
 
         pc = inc(registrador1, pc, memoria_registradores)
 
-    condiz = re.fullmatch(lista_padroes[1], linha)
+    condiz = re.fullmatch(PADROES_SINTAXE["DEC"], linha)
     if condiz:
         registrador1 = linha.split()[1]
 
         if not registrador_existe(registrador1, memoria_registradores):
-            criar_registrador(registrador1, memoria_registradores, 0)
+            criar_registrador(registrador1, memoria_registradores)
 
         pc = dec(registrador1, pc, memoria_registradores)
 
-    condiz = re.fullmatch(lista_padroes[2], linha)
+    condiz = re.fullmatch(PADROES_SINTAXE["TST"], linha)
     if condiz:
         partes = linha.split()
         registrador1 = partes[1]
 
         if not registrador_existe(registrador1, memoria_registradores):
-            criar_registrador(registrador1, memoria_registradores, 0)
+            criar_registrador(registrador1, memoria_registradores)
 
         salto_zero = int(partes[3])
         salto_nao_zero = int(partes[5])
@@ -440,7 +432,7 @@ while True:
 
         case 2:
             if not memoria_codigo:
-                print("\nNenhum arquivo foi carregado. Por favor, carregue um arquivo .norma para continuar.")
+                print("\nNenhum arquivo foi carregado. Por favor, carregue um arquivo .norma ou .txt para continuar.")
             else:
                 contador = 1
                 limite = int(input("\nDigite o valor do limite de execuções: "))
@@ -455,7 +447,7 @@ while True:
 
         case 3:
             if not memoria_codigo:
-                print("\nNenhum arquivo foi carregado. Por favor, carregue um arquivo .norma para continuar.")
+                print("\nNenhum arquivo foi carregado. Por favor, carregue um arquivo .norma ou .txt para continuar.")
             else:
                 contador = 1
                 limite = int(input("\nDigite o valor do limite de execuções: "))
