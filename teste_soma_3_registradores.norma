@@ -1,8 +1,4 @@
 A := 5
 B := 3
 
-A := A + B com X, Y
-
-A := 5
-
 C := A + B com X, Y, Z

@@ -1,0 +1,4 @@
+A := 14
+B := 3
+
+Q := A div B, R := A mod B com X, Y, Z
