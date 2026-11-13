@@ -1,0 +1,8 @@
+A := 3
+B := 5
+
+A := A - B com X, Y
+
+A := 3
+
+C := A - B com X, Y, Z
