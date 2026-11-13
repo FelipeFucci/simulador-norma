@@ -1,0 +1,10 @@
+B := 2
+
+INÍCIO:
+
+INC A
+DEC B
+
+TST B VÁ_PARA INÍCIO SENÃO FIM
+
+FIM:
