@@ -1,4 +1,4 @@
 A := 3
 B := 5
 
-A := A - B com X, Y
+A := A - B com X

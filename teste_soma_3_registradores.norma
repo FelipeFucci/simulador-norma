@@ -1,4 +1,4 @@
 A := 5
 B := 3
 
-C := A + B com X, Y, Z
+C := A + B com X, Y
